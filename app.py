@@ -13,8 +13,8 @@ class App:
     patterns = self.info.patterns
     client = Client(formats=formats, patterns=patterns)
 
-    self.gui_init(client)
-    # self.tui_init(content, client)
+    # self.gui_init(client)
+    self.tui_init(client)
 
   def tui_init(self, client):
     app = TuiApp(client)
