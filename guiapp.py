@@ -78,14 +78,15 @@ class GuiApp():
         self.format = self.format_list[0]
 
         ####################################
-        # ボタンをまとめるためのフレームを作成
-        # ウィンドウ幅に合わせてボタンを自動折返し表示する
-        self.frame = tk.Frame(root)
-        # ボタンウィジェットの参照を保持
-        self.buttons = []
-        # 折返し処理のデバウンス制御
-        self._wrap_after_id = None
-        self._is_wrapping = False
+        # ボタンをまとめるためのキャンバスとコンテナを作成
+        # 横に並んだボタンを折返さず、ウィンドウ幅を超える場合はスクロール可能にする
+        self.button_canvas = tk.Canvas(root, height=40)
+        self.button_scrollbar = tk.Scrollbar(root, orient='horizontal', command=self.button_canvas.xview)
+        self.button_canvas.configure(xscrollcommand=self.button_scrollbar.set)
+        self.button_container = tk.Frame(self.button_canvas)
+        self.button_canvas.create_window((0, 0), window=self.button_container, anchor='nw')
+        # コンテナのサイズ変化でスクロール領域を更新
+        self.button_container.bind("<Configure>", lambda e: self.button_canvas.configure(scrollregion=self.button_canvas.bbox("all")))
 
         # ラジオボタン用のフレームを作成（先に配置する）
         self.radio_frame = tk.Frame(root)
@@ -104,14 +105,12 @@ class GuiApp():
         self.text_area = tk.Text(root, height=8, wrap='word')
         self.text_area.pack(fill='both', expand=False, pady=5, padx=10)
 
-        # ボタンフレームをここで配置してからボタン群を生成（先頭に Exit ボタン）
-        self.frame.pack(fill='x', padx=10, pady=5)
-        exit_button = tk.Button(self.frame, text="Exit", fg="white", bg="red", command=root.destroy)
-        # Exit ボタンもリストに追加して折返し対象とする
-        self.buttons.append(exit_button)
+        # ボタン用のキャンバスとスクロールバーを配置してからボタン群を生成（先頭に Exit ボタン）
+        self.button_canvas.pack(fill='x', padx=10, pady=5)
+        self.button_scrollbar.pack(fill='x', padx=10)
+        exit_button = tk.Button(self.button_container, text="Exit", fg="white", bg="red", command=root.destroy)
+        exit_button.pack(side='left', padx=2, pady=2)
         self._create_buttons()
-        # ウィンドウサイズ変更時にボタンの折返しを再計算（デバウンス）
-        root.bind('<Configure>', self._on_configure)
 
         # 結果を表示するためのラベルをウィンドウに配置
         self.result_label = tk.Label(root, text="上のボタンをクリックしてください", font=("Helvetica", 12))
@@ -124,17 +123,7 @@ class GuiApp():
         # アプリケーションのメインループを開始
         root.mainloop()
 
-    def _on_configure(self, event):
-        """Configure イベントをデバウンスして折返し処理を呼ぶ"""
-        try:
-            if self._wrap_after_id is not None:
-                self.frame.after_cancel(self._wrap_after_id)
-        except Exception:
-            pass
-        # 少し遅延して実行（連続イベント対策）
-        self._wrap_after_id = self.frame.after(100, self._wrap_buttons)
-
-        # 結果を表示するためのラベルとラジオ結果ラベルは run() の残りで配置される
+    
 
     def _create_buttons(self):
         """
@@ -148,19 +137,15 @@ class GuiApp():
             # 重要: `t=item_text` のようにデフォルト引数を使うことで、
             #       ループの各時点でのitem_textの値を正しくボタンに束縛できる。
             # Buttons are created inside button_container so they can scroll horizontally
-            button = tk.Button(
-                self.frame,
-                text=item_text,
-                command=lambda t=item_text: self.callback(t)
-            )
             
             # ボタンをフレーム内に配置する (packはデフォルトで縦に並べる)
             # fill='x'でボタンの幅をフレームの幅に合わせ、padyで上下に少し余白を作る
-            # まずは pack せずにリストへ追加しておき、折返しレイアウトで配置する
-            self.buttons.append(button)
-
-        # 初回配置
-        self._wrap_buttons()
+            button = tk.Button(
+                self.button_container,
+                text=item_text,
+                command=lambda t=item_text: self.callback(t)
+            )
+            button.pack(side='left', padx=2, pady=2)
 
     def _wrap_buttons(self):
         """
