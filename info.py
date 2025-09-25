@@ -66,3 +66,31 @@ class Info:
     }
 
     return self.load_info_json_file(data)
+
+  def remake(self, path: str) -> bool:
+    """
+    指定したパスに既定の連想配列を持つ JSON ファイルを作成する。
+
+    Args:
+      path: 作成する JSON ファイルのパス（文字列）
+
+    Returns:
+      書き込みに成功したら True、失敗したら False
+    """
+    target_path = Path(path)
+    manager = JSONFileManager(target_path)
+    default_data = {
+      "pattern": [],
+      "format": []
+    }
+
+    success = manager.write(default_data)
+    if success:
+      # 更新されたファイルパスを反映して内部状態をリセット
+      self.path = target_path
+      self.json_manager = manager
+      self.info = default_data
+      self.formats = []
+      self.patterns = []
+
+    return success
