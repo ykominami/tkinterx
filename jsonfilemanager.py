@@ -26,8 +26,21 @@ class JSONFileManager:
         self.file_path = Path(file_path)
         self.encoding = 'utf-8'
         self.file = None
+        self.data = None
     
-    def read(self) -> Optional[Union[Dict, List, Any]]:
+    def get_keys(self):
+        """
+        Return a list of keys (patterns) available in the loaded params_map.
+        """
+        try:
+            if not isinstance(self.data, dict):
+                return []
+            return list(self.data.keys())
+        except Exception:
+            return []
+
+
+    def load(self) -> Optional[Union[Dict, List, Any]]:
         """
         JSONファイルを読み込む
         
@@ -41,9 +54,9 @@ class JSONFileManager:
                 return None
             
             with open(self.file_path, 'r', encoding=self.encoding) as file:
-                data = json.load(file)
+                self.data = json.load(file)
                 print(f"JSONファイルを読み込みました: {self.file_path}")
-                return data
+                return self.data
                 
         except json.JSONDecodeError as e:
             print(f"JSONの解析エラー: {e}")
