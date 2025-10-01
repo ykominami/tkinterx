@@ -1,6 +1,7 @@
 import requests
 import json
 import urllib.parse
+import os
 
 from info import Info
 
@@ -9,14 +10,17 @@ class Client:
     HTTPリクエストを送信するためのクライアントクラス
     """
     
-    def __init__(self, formats: [str], patterns: [str]):
-        self.formats = formats
-        self.patterns = patterns
-        self.selected_pattern = None
-        self.selected_format = None
+    def __init__(self, format_path = "info3.json", params_path = "params_map.json"):
+        self.patterns = None
+        self.formats = None
         #self.url = "https://script.google.com/macros/s/AKfycbyVI7e9uZ9c7BDWXDd2-272hX2MefjUyJkzHsahYpAINn3-PPYnhKO4LcpvK9uxrIsq/exec"
         # self.url = "https://script.google.com/macros/s/AKfycbwFir48x3T1B9fY3aHGaMYpO96fxFsvTqDusbxe6FB92Htrj4xdO3ZccP_YscAdcAJt/exec" 
         self.url = "https://script.google.com/macros/s/AKfycbwFir48x3T1B9fY3aHGaMYpO96fxFsvTqDusbxe6FB92Htrj4xdO3ZccP_YscAdcAJt/exec"
+        # Use Info for params_map and patterns
+        self.info = Info(format_path = format_path, params_path = params_path)
+        if self.info.patterns is not None:
+            self.patterns = self.info.patterns
+            self.formats = self.info.formats
     
     def object_to_url_encoded(self, obj):
         """
@@ -243,7 +247,7 @@ class Client:
         return ret
 
     def test_get_sub(self, url, params):
-        print("=== GETリクエストのテスト ===")
+        print(f"=== GETリクエストのテスト ==={params}")
         # GETリクエストのテスト
         
         result = self.make_get_request_simple(
@@ -293,43 +297,29 @@ class Client:
         return result
 
     def make_params(self, pattern):
-        params = None
+        """
+        Return parameters for the given pattern using the external params_map.
+        If the pattern is not present, returns None and prints a message.
+        """
+        try:
+            if not self.info.params_map:
+                print("params_map is empty or not loaded")
+                return None
 
-        if pattern == 'OpenAI-Cursor':
-            params = {
-                'cmd': 'web_api',
-                'name': 'OpenAI',
-                'kind': 'CursorCursor'
-            }
+            params = self.params_map.get(pattern)
+            if params is None:
+                print(f"pattern: {pattern} is not supported")
+                return None
 
-        elif pattern == 'web_api_s':
-            params = {
-                'cmd': 'web_api_s',
-                'name': 'OpenAI',
-                'kind': 'CursorCursor'
-            }
-        elif pattern == 'web_api_2':
-            params = {
-                'cmd': 'web_api_2',
-                'name': 'OpenAI',
-                'kind': 'CursorCursor'
-            }
-        elif pattern == "web_api_list":
-            params = {
-                "cmd": "web_api_list",
-            }
-        elif pattern == "pc_config":
-            params = {
-                "cmd": "pc_config",
-            }
-        elif pattern == "planning":
-            params = {
-                "cmd": "planning",
-            }
-        else:
-            print(f"pattern: {pattern} is not supported")
-
-        return params
+            if isinstance(params, dict):
+                # return a shallow copy to avoid accidental mutation
+                return params.copy()
+            else:
+                print(f"params for pattern {pattern} has unexpected type: {type(params)}")
+                return None
+        except Exception as e:
+            print(f"make_params error: {e}")
+            return None
 
     def run(self, format_option : str, pattern_option : str):
         ret = None
@@ -349,17 +339,13 @@ class Client:
         return ret
 
 if __name__ == "__main__":
-    info = Info('info3.json')
-    content = info.load_info_json_file_1()
-    print(f"client:main:content: {content}")
-
-    formats = content["format"]
-    patterns = content["pattern"]
-    client = Client(formats=formats, patterns=patterns)
-    format = content["format"][1]
-    pattern = content["pattern"][2]
+    client = Client(format_path = "info3.json", params_path = "params_map.json")
+    patterns =  client.patterns
+    pattern =  patterns[2]
+    formats =  client.formats
+    format = formats[1]
+    # pattern = content["pattern"][2]
     ret = client.run(format, pattern)
-    print( f'__main__ ret={ret}' )
     # client.gui_init(content)
     #client.tui_init(content)
 

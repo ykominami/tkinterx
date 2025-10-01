@@ -5,30 +5,23 @@ from client import Client
 import sys
 
 class App:
-  def __init__(self, file_path: str):
-    self.info = Info(file_path)
-    self.info.load_info()
+  def __init__(self, format_path = "info3.json", params_path = "params_map.json"):
+    self.client = Client(format_path = format_path, params_path = params_path)
 
   def run(self, mode: str = "tui"):
-    formats = self.info.formats
-    patterns = self.info.patterns
-    client = Client(formats=formats, patterns=patterns)
+    if self.client.patterns is not None:
+      if mode and mode.lower() == "gui":
+        app = GuiApp(self.client)
+      else:
+        app = TuiApp(self.client)
 
-    if mode and mode.lower() == "gui":
-      self.gui_init(client)
+      app.run()
     else:
-      self.tui_init(client)
-
-  def tui_init(self, client):
-    app = TuiApp(client)
-    app.run()
-
-  def gui_init(self, client):
-    app = GuiApp(client)
-    app.run()
+      print("patterns is not loaded")
 
 if __name__ == "__main__":
   app = App('info3.json')
+  # app = App(format_path = 'info.json')
 
   mode = sys.argv[1].lower() if len(sys.argv) > 1 else "tui"
   app.run(mode)
